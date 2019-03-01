@@ -15,8 +15,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-// importo las rutas del usuario
-app.use(require('./routes/routes'));
+// importo las rutas del server
+app.use(require('./routes/index'));
 
 mongoose.set('useCreateIndex', true); // elimina el warning de ensureIndex.
 

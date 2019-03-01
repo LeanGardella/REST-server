@@ -7,40 +7,44 @@ const _ = require('underscore'); // libreria underscore
 
 const Usuario = require('../models/usuario');
 
-app.get('/usuario', function(req, res) {
+// middlewares
+const { verificaToken, verificaAdminRole } = require('../middleware/autenticacion');
 
-    let condicion = { estado: true };
+app.get('/usuario', verificaToken,
+    function(req, res) {
 
-    let desde = Number(req.query.desde || 0);
-    let limite = Number(req.query.limite || 5);
+        let condicion = { estado: true };
 
-    Usuario.find(condicion, 'nombre email role google estado img') // el segundo parámetro, string, me permite definir que campos quiero mostrar.
-        .skip(desde)
-        .limit(limite)
-        .exec((err, usuarios) => {
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    msg: err
-                });
-            }
-            Usuario.count(condicion, (err, cuenta) => {
+        let desde = Number(req.query.desde || 0);
+        let limite = Number(req.query.limite || 5);
+
+        Usuario.find(condicion, 'nombre email role google estado img') // el segundo parámetro, string, me permite definir que campos quiero mostrar.
+            .skip(desde)
+            .limit(limite)
+            .exec((err, usuarios) => {
                 if (err) {
                     return res.status(400).json({
                         ok: false,
                         msg: err
                     });
                 }
-                res.json({
-                    ok: true,
-                    cuenta,
-                    usuarios
+                Usuario.count(condicion, (err, cuenta) => {
+                    if (err) {
+                        return res.status(400).json({
+                            ok: false,
+                            msg: err
+                        });
+                    }
+                    res.json({
+                        ok: true,
+                        cuenta,
+                        usuarios
+                    });
                 });
             });
-        });
-});
+    });
 
-app.post('/usuario', function(req, res) {
+app.post('/usuario', [verificaToken, verificaAdminRole], function(req, res) {
     let body = req.body;
 
     let usuario = new Usuario({
@@ -64,7 +68,7 @@ app.post('/usuario', function(req, res) {
     });
 });
 
-app.put('/usuario/:id', function(req, res) {
+app.put('/usuario/:id', [verificaToken, verificaAdminRole], function(req, res) {
     let id = req.params.id;
     let body = _.pick(req.body, ['nombre', 'img', 'email', 'role', 'estado']);
 
@@ -83,7 +87,7 @@ app.put('/usuario/:id', function(req, res) {
 
 });
 
-app.delete('/usuario/:id', function(req, res) {
+app.delete('/usuario/:id', [verificaToken, verificaAdminRole], function(req, res) {
     let id = req.params.id;
 
     Usuario.findByIdAndUpdate(id, { estado: false }, { new: true }, (err, userDB) => { // Marca como estado false, para indicar que esta inactivo
@@ -98,25 +102,6 @@ app.delete('/usuario/:id', function(req, res) {
             usuario: userDB
         });
     });
-
-    // Usuario.findByIdAndDelete(id, (err, borrado) => { // Borra permanentemente
-    //     if (err) {
-    //         return res.status(400).json({
-    //             ok: false,
-    //             msg: err
-    //         });
-    //     }
-    //     if (!borrado) {
-    //         return res.status(400).json({
-    //             ok: false,
-    //             msg: 'Usuario inexistente'
-    //         });
-    //     }
-    //     res.json({
-    //         ok: true,
-    //         usuario: borrado
-    //     });
-    // });
 
 });
 
